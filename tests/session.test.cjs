@@ -207,7 +207,30 @@ for(const revision of [null,'excel-20261101-v1','excel-20261101-v2','excel-20261
  assert.equal(updated.wrong[156],undefined);
  if(revision)assert.deepEqual(updated.seen[97],previous.seen[97]);
  assert.equal(updated.session.flags[156],true);
- assert.equal(updated.bankRevision,'excel-20261101-v6');
+ assert.equal(updated.bankRevision,migration.revision);
  assert.deepEqual(mount(updated,1200).state(),updated);
 }
 console.log('Passed: chapter 5 question 6 repairs saved grades from pre-Excel and v1-v5, maps choices only when needed, and preserves progress.');
+
+// Course question 41 BC maps to chapter 5 question 36 CD in website order.
+for(const revision of [null,'excel-20261101-v1','excel-20261101-v2','excel-20261101-v3','excel-20261101-v4','excel-20261101-v5','excel-20261101-v6']){
+ const previous={version:2,bankRevision:revision,wrong:{186:{count:1,lastAt:1000}},seen:{186:{attempts:2,right:1},1:{attempts:5,right:4}},history:[
+  {id:'old-abcd-186',mode:'practice',ids:[186],answers:{186:['A','B','C','D']},finishedAt:900,score:100,right:1,wrong:0,unanswered:0}
+ ],session:{id:'course41',mode:'practice',ids:[186,1],answers:{186:revision?['C','D']:['B','C']},checked:{186:true},flags:{186:true},index:0,startedAt:1000,deadline:null}};
+ const updated=mount(previous,1200).state();
+ assert.deepEqual(updated.session.answers[186],['C','D']);
+ assert.deepEqual(updated.history[0].answers,previous.history[0].answers);
+ assert.deepEqual(updated.session.ids,previous.session.ids);
+ assert.equal(updated.session.index,0);
+ assert.equal(updated.history[0].score,0);
+ assert.equal(updated.history[0].details[0].correct,false);
+ assert.equal(updated.seen[186].attempts,2);
+ assert.equal(updated.seen[186].right,1);
+ assert.equal(updated.seen[186].lastCorrect,true);
+ assert.equal(updated.wrong[186],undefined);
+ assert.deepEqual(updated.seen[1],previous.seen[1]);
+ assert.equal(updated.session.flags[186],true);
+ assert.equal(updated.bankRevision,'excel-20261101-v7');
+ assert.deepEqual(mount(updated,1200).state(),updated);
+}
+console.log('Passed: chapter 5 question 36 regrades CD as correct and ABCD as wrong from pre-Excel and v1-v6 without losing progress.');
