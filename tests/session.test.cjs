@@ -163,7 +163,28 @@ for(const revision of ['excel-20261101-v1','excel-20261101-v2','excel-20261101-v
  assert.equal(updated.wrong[101],undefined);
  assert.deepEqual(updated.seen[97],previous.seen[97]);
  assert.equal(updated.session.flags[101],true);
- assert.equal(updated.bankRevision,'excel-20261101-v4');
+ assert.equal(updated.bankRevision,migration.revision);
  assert.deepEqual(mount(updated,1200).state(),updated);
 }
 console.log('Passed: chapter 2 question 31 regrades ACD as correct and AC as incomplete from v1/v2/v3 without changing selected letters or progress.');
+
+// Course question 39 BD maps to chapter 2 question 44 CD in website order.
+for(const revision of ['excel-20261101-v1','excel-20261101-v2','excel-20261101-v3','excel-20261101-v4']){
+ const previous={version:2,bankRevision:revision,wrong:{114:{count:1,lastAt:1000}},seen:{114:{attempts:2,right:1},97:{attempts:5,right:4}},history:[
+  {id:'old-bcd',mode:'practice',ids:[114,97],answers:{114:['B','C','D'],97:['D']},finishedAt:900,score:100,right:2,wrong:0,unanswered:0}
+ ],session:{id:'course39',mode:'practice',ids:[114,97],answers:{114:['C','D'],97:['D']},checked:{114:true},flags:{114:true},index:0,startedAt:1000,deadline:null}};
+ const updated=mount(previous,1200).state();
+ assert.deepEqual(updated.session.answers,previous.session.answers);
+ assert.deepEqual(updated.history[0].answers,previous.history[0].answers);
+ assert.equal(updated.history[0].score,50);
+ assert.equal(updated.history[0].details[0].correct,false);
+ assert.equal(updated.seen[114].attempts,2);
+ assert.equal(updated.seen[114].right,1);
+ assert.equal(updated.seen[114].lastCorrect,true);
+ assert.equal(updated.wrong[114],undefined);
+ assert.deepEqual(updated.seen[97],previous.seen[97]);
+ assert.equal(updated.session.flags[114],true);
+ assert.equal(updated.bankRevision,'excel-20261101-v5');
+ assert.deepEqual(mount(updated,1200).state(),updated);
+}
+console.log('Passed: chapter 2 question 44 corrects saved CD and BCD grading from v1-v4 without changing letters, progress or unaffected statistics.');
