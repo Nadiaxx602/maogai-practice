@@ -24,10 +24,11 @@ for(const [chapter,order,answer] of [['第一章',35,'ABCD'],['第五章',18,'C'
 }
 assert.equal(reference.records.length,257);
 const normalizeText=text=>text.normalize('NFKC').replace(/[^\p{L}\p{N}]/gu,'').toLowerCase();
+const latestCorrections={10:['马克思列宁主义'],67:['理论联系实际','坚持在实践中检验真理和发展真理','一切从实际出发']};
 for(const row of reference.records){
   const q=Q.find(q=>q.id===row.id);
-  // The user's later screenshot correction supersedes Excel row 10's answer.
-  const expected=row.id===10?['马克思列宁主义']:row.answers;
+  // Later explicit corrections and course screenshots supersede Excel answers.
+  const expected=latestCorrections[row.id]||row.answers;
   assert.deepEqual([...q.answer].map(a=>normalizeText(q.options[a])).sort(),expected.map(normalizeText).sort(),`Excel row ${row.row}, with latest user corrections: answer CONTENT must match`);
 }
 assert.equal(find('第二章',27).answer,'D');
@@ -36,6 +37,12 @@ assert.ok(find('第二章',27).options.B.includes('目标是争取民族独立')
 assert.equal(find('绪论',10).answer,'C');
 assert.equal(find('绪论',10).explanation,'C. 马克思列宁主义');
 assert.equal(find('绪论',10).note,'');
+assert.equal(find('第一章',41).answer,'ACD');
+assert.equal(find('第一章',41).options.B,'调查研究');
+assert.equal(find('第一章',41).explanation,'A. 理论联系实际；C. 坚持在实践中检验真理和发展真理；D. 一切从实际出发');
+assert.equal(find('第一章',41).note,'');
+assert.equal(C.correct(['A','C','D'],find('第一章',41).answer),true);
+assert.equal(C.correct(['A','B','C','D'],find('第一章',41).answer),false);
 assert.ok(find('第七章',15).options.A.endsWith('坚持党的先进性'));
 for(const q of Q){
   assert.ok(q.question.trim());assert.ok(q.explanation.trim());
@@ -64,4 +71,4 @@ assert.equal(selected.length,5);assert.ok(selected.every(q=>q.chapter===chapter&
 assert.equal(C.selectQuestions(Q,{chapter:'all',type:'all',count:'20',order:'random'}).length,20);
 assert.equal(C.selectQuestions(Q,{chapter:'all',type:'all',count:'all',order:'sequential'}).length,298);
 console.log('Passed: 298 questions, seven chapter counts and original numbers, seven user confirmations, exact multi-choice grading, scores, filters, random selection.');
-console.log('Passed: 257 reference answers with the latest user correction to question 10, original photo order for revolution question 27.');
+console.log('Passed: 257 reference answers with latest corrections to questions 10 and 67, original photo order for revolution question 27.');

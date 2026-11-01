@@ -122,6 +122,27 @@ assert.equal(v2.seen[10].right,1);
 assert.equal(v2.wrong[10],undefined);
 assert.deepEqual(v2.seen[97],v1.seen[97]);
 assert.equal(v2.session.flags[10],true);
-assert.equal(v2.bankRevision,'excel-20261101-v2');
+assert.equal(v2.bankRevision,migration.revision);
 assert.deepEqual(mount(v2,1200).state(),v2);
 console.log('Passed: question 10 C regraded correctly for Excel-v1 users without repeating option remapping; progress and other statistics preserved.');
+
+// Course screenshot confirms chapter 1 question 41: ACD, not ABCD.
+for(const revision of ['excel-20261101-v1','excel-20261101-v2']){
+ const previous={version:2,bankRevision:revision,wrong:{67:{count:1,lastAt:1000}},seen:{67:{attempts:2,right:1},97:{attempts:5,right:4}},history:[
+  {id:'old-key',mode:'practice',ids:[67,97],answers:{67:['A','B','C','D'],97:['D']},finishedAt:900,score:100,right:2,wrong:0,unanswered:0}
+ ],session:{id:'screenshot',mode:'practice',ids:[67,97],answers:{67:['A','C','D'],97:['D']},checked:{67:true},flags:{67:true},index:0,startedAt:1000,deadline:null}};
+ const updated=mount(previous,1200).state();
+ assert.deepEqual(updated.session.answers,previous.session.answers);
+ assert.deepEqual(updated.history[0].answers,previous.history[0].answers);
+ assert.equal(updated.history[0].score,50);
+ assert.equal(updated.history[0].details[0].correct,false);
+ assert.equal(updated.seen[67].attempts,2);
+ assert.equal(updated.seen[67].right,1);
+ assert.equal(updated.seen[67].lastCorrect,true);
+ assert.equal(updated.wrong[67],undefined);
+ assert.deepEqual(updated.seen[97],previous.seen[97]);
+ assert.equal(updated.session.flags[67],true);
+ assert.equal(updated.bankRevision,'excel-20261101-v3');
+ assert.deepEqual(mount(updated,1200).state(),updated);
+}
+console.log('Passed: course-confirmed ACD repairs saved results from v1 and v2, marks old ABCD wrong, preserves progress, and is idempotent.');
