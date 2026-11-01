@@ -26,7 +26,9 @@
   function migrateQuestionBank(value, migration, questions) {
     if(!migration || value.bankRevision===migration.revision)return value;
     const db=JSON.parse(JSON.stringify(value)), byId=new Map(questions.map(q=>[q.id,q]));
-    const affected=new Set(migration.affectedIds), letters=migration.letters||{};
+    // An already migrated bank must only receive the subsequent answer changes.
+    const transition=migration.fromRevisions?.[value.bankRevision]||migration;
+    const affected=new Set(transition.affectedIds), letters=transition.letters||{};
     const remap=(id,selected)=>normalize(selected).map(a=>letters[id]?.[a]||a).sort();
     const remapAnswers=answers=>Object.fromEntries(Object.entries(answers||{}).map(([id,a])=>[id,remap(id,a)]));
     db.history=db.history.map(result=>{

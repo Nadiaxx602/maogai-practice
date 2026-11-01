@@ -26,12 +26,16 @@ assert.equal(reference.records.length,257);
 const normalizeText=text=>text.normalize('NFKC').replace(/[^\p{L}\p{N}]/gu,'').toLowerCase();
 for(const row of reference.records){
   const q=Q.find(q=>q.id===row.id);
-  assert.deepEqual([...q.answer].map(a=>normalizeText(q.options[a])).sort(),row.answers.map(normalizeText).sort(),`Excel row ${row.row}: answer CONTENT must match, irrespective of option order`);
+  // The user's later screenshot correction supersedes Excel row 10's answer.
+  const expected=row.id===10?['马克思列宁主义']:row.answers;
+  assert.deepEqual([...q.answer].map(a=>normalizeText(q.options[a])).sort(),expected.map(normalizeText).sort(),`Excel row ${row.row}, with latest user corrections: answer CONTENT must match`);
 }
 assert.equal(find('第二章',27).answer,'D');
 assert.equal(find('第二章',27).options.D,'以武装的革命反对武装的反革命');
 assert.ok(find('第二章',27).options.B.includes('目标是争取民族独立'));
-assert.ok(find('绪论',10).note.includes('差异'));
+assert.equal(find('绪论',10).answer,'C');
+assert.equal(find('绪论',10).explanation,'C. 马克思列宁主义');
+assert.equal(find('绪论',10).note,'');
 assert.ok(find('第七章',15).options.A.endsWith('坚持党的先进性'));
 for(const q of Q){
   assert.ok(q.question.trim());assert.ok(q.explanation.trim());
@@ -60,4 +64,4 @@ assert.equal(selected.length,5);assert.ok(selected.every(q=>q.chapter===chapter&
 assert.equal(C.selectQuestions(Q,{chapter:'all',type:'all',count:'20',order:'random'}).length,20);
 assert.equal(C.selectQuestions(Q,{chapter:'all',type:'all',count:'all',order:'sequential'}).length,298);
 console.log('Passed: 298 questions, seven chapter counts and original numbers, seven user confirmations, exact multi-choice grading, scores, filters, random selection.');
-console.log('Passed: all 257 reference answers compared by text, original photo order for revolution question 27, and source conflict disclosure.');
+console.log('Passed: 257 reference answers with the latest user correction to question 10, original photo order for revolution question 27.');

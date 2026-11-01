@@ -109,3 +109,19 @@ const multiFixed=C.migrateQuestionBank(multi,migration,bank);
 assert.ok(C.correct(multiFixed.session.answers[multiId],bank.find(q=>q.id===multiId).answer));
 assert.equal(multiFixed.seen[multiId].right,1);
 console.log('Passed: legacy choices remapped by content, corrected scores and wrong-book, preserved progress/flags/unaffected statistics, backup, multi-choice migration and idempotence.');
+
+// Existing Excel-v1 users have already had their option letters remapped.
+const v1={version:2,bankRevision:'excel-20261101-v1',wrong:{10:{count:1,lastAt:900}},seen:{10:{attempts:1,right:0},97:{attempts:5,right:4}},history:[
+ {id:'v1-report',mode:'practice',ids:[10,97],answers:{10:['C'],97:['D']},finishedAt:900,score:50,right:1,wrong:1,unanswered:0}
+],session:{id:'v1-session',mode:'practice',ids:[10,97],answers:{10:['C'],97:['D']},checked:{},flags:{10:true},index:0,startedAt:1000,deadline:null}};
+const v2=mount(v1,1200).state();
+assert.deepEqual(v2.session.answers,v1.session.answers);
+assert.deepEqual(v2.history[0].answers,v1.history[0].answers);
+assert.equal(v2.history[0].score,100);
+assert.equal(v2.seen[10].right,1);
+assert.equal(v2.wrong[10],undefined);
+assert.deepEqual(v2.seen[97],v1.seen[97]);
+assert.equal(v2.session.flags[10],true);
+assert.equal(v2.bankRevision,'excel-20261101-v2');
+assert.deepEqual(mount(v2,1200).state(),v2);
+console.log('Passed: question 10 C regraded correctly for Excel-v1 users without repeating option remapping; progress and other statistics preserved.');
