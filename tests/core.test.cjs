@@ -26,7 +26,8 @@ assert.equal(reference.records.length,257);
 const normalizeText=text=>text.normalize('NFKC').replace(/[^\p{L}\p{N}]/gu,'').toLowerCase();
 const course31={answer:'ABD',options:{A:'封建主义和人民大众的矛盾',B:'帝国主义和中华民族的矛盾',C:'地主阶级和农民阶级的矛盾',D:'帝国主义和中华民族的矛盾是各种矛盾中最主要的矛盾'}};
 const course39={answer:'BD',options:{A:'多个帝国主义国家间接统治的政治经济发展不平衡的半殖民地半封建的大国',B:'相当力量的正式红军的存在',C:'良好的群众基础',D:'党的领导的有力量及其政策的不错误'}};
-const latestCorrections={10:['马克思列宁主义'],67:['理论联系实际','坚持在实践中检验真理和发展真理','一切从实际出发'],101:[...course31.answer].map(a=>course31.options[a]),114:[...course39.answer].map(a=>course39.options[a])};
+const course23={answer:'A',options:{A:'《在武昌、深圳、珠海、上海等地的谈话要点》',B:'《坚持四项基本原则》',C:'《邓小平文选》二卷',D:'《解放思想,实事求是,团结一致向前看》'}};
+const latestCorrections={10:['马克思列宁主义'],67:['理论联系实际','坚持在实践中检验真理和发展真理','一切从实际出发'],101:[...course31.answer].map(a=>course31.options[a]),114:[...course39.answer].map(a=>course39.options[a]),156:[course23.options[course23.answer]]};
 for(const row of reference.records){
   const q=Q.find(q=>q.id===row.id);
   // Later explicit corrections and course screenshots supersede Excel answers.
@@ -61,6 +62,13 @@ assert.equal(find('第二章',44).options.D,course39.options.D);
 assert.equal(find('第二章',44).note,'');
 assert.equal(find('第二章',44).explanation,'C. 相当力量的正式红军的存在；D. 党的领导的有力量及其政策的不错误');
 for(const [answer,expected] of [['CD',true],['BD',false],['BCD',false],['ABCD',false]])assert.equal(C.correct(answer,find('第二章',44).answer),expected);
+assert.equal(find('第五章',6).answer,'D');
+assert.equal(find('第五章',6).options.D,course23.options.A);
+assert.equal(find('第五章',6).options.B,course23.options.D);
+assert.equal(find('第五章',6).explanation,'D. '+course23.options.A);
+assert.equal(find('第五章',6).note,'');
+assert.equal(C.correct(['D'],find('第五章',6).answer),true);
+assert.equal(C.correct(['B'],find('第五章',6).answer),false);
 assert.ok(find('第七章',15).options.A.endsWith('坚持党的先进性'));
 for(const q of Q){
   assert.ok(q.question.trim());assert.ok(q.explanation.trim());
@@ -89,4 +97,4 @@ assert.equal(selected.length,5);assert.ok(selected.every(q=>q.chapter===chapter&
 assert.equal(C.selectQuestions(Q,{chapter:'all',type:'all',count:'20',order:'random'}).length,20);
 assert.equal(C.selectQuestions(Q,{chapter:'all',type:'all',count:'all',order:'sequential'}).length,298);
 console.log('Passed: 298 questions, seven chapter counts and original numbers, seven user confirmations, exact multi-choice grading, scores, filters, random selection.');
-console.log('Passed: 257 reference answers with latest corrections to questions 10, 67, 101 and 114; course answers matched by content.');
+console.log('Passed: 257 reference answers with latest corrections to questions 10, 67, 101, 114 and 156; course answers matched by content.');

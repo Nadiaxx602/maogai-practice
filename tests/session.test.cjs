@@ -184,7 +184,30 @@ for(const revision of ['excel-20261101-v1','excel-20261101-v2','excel-20261101-v
  assert.equal(updated.wrong[114],undefined);
  assert.deepEqual(updated.seen[97],previous.seen[97]);
  assert.equal(updated.session.flags[114],true);
- assert.equal(updated.bankRevision,'excel-20261101-v5');
+ assert.equal(updated.bankRevision,migration.revision);
  assert.deepEqual(mount(updated,1200).state(),updated);
 }
 console.log('Passed: chapter 2 question 44 corrects saved CD and BCD grading from v1-v4 without changing letters, progress or unaffected statistics.');
+
+// Course question 23 A maps to chapter 5 question 6 D in website order.
+for(const revision of [null,'excel-20261101-v1','excel-20261101-v2','excel-20261101-v3','excel-20261101-v4','excel-20261101-v5']){
+ const previous={version:2,bankRevision:revision,wrong:{156:{count:1,lastAt:1000}},seen:{156:{attempts:2,right:1},97:{attempts:5,right:4}},history:[
+  {id:'old-key-156',mode:'practice',ids:[156],answers:{156:[revision?'B':'D']},finishedAt:900,score:100,right:1,wrong:0,unanswered:0}
+ ],session:{id:'course23',mode:'practice',ids:[156,1],answers:{156:[revision?'D':'A']},checked:{156:true},flags:{156:true},index:0,startedAt:1000,deadline:null}};
+ const updated=mount(previous,1200).state();
+ assert.deepEqual(updated.session.answers[156],['D']);
+ assert.deepEqual(updated.history[0].answers[156],['B']);
+ assert.deepEqual(updated.session.ids,previous.session.ids);
+ assert.equal(updated.session.index,0);
+ assert.equal(updated.history[0].score,0);
+ assert.equal(updated.history[0].details[0].correct,false);
+ assert.equal(updated.seen[156].attempts,2);
+ assert.equal(updated.seen[156].right,1);
+ assert.equal(updated.seen[156].lastCorrect,true);
+ assert.equal(updated.wrong[156],undefined);
+ if(revision)assert.deepEqual(updated.seen[97],previous.seen[97]);
+ assert.equal(updated.session.flags[156],true);
+ assert.equal(updated.bankRevision,'excel-20261101-v6');
+ assert.deepEqual(mount(updated,1200).state(),updated);
+}
+console.log('Passed: chapter 5 question 6 repairs saved grades from pre-Excel and v1-v5, maps choices only when needed, and preserves progress.');
