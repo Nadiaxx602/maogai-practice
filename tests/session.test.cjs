@@ -6,15 +6,17 @@ const C = require('../docs/quiz-core.js');
 const data={window:{}};
 vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../docs/data.js'),'utf8'),data);
 const bank=JSON.parse(JSON.stringify(data.window.QUESTION_BANK));
+const migration=JSON.parse(JSON.stringify(data.window.QUESTION_BANK_MIGRATION));
 const code=fs.readFileSync(path.join(__dirname,'../docs/app.js'),'utf8');
 const KEY='maogai-study-room-photos-20261101-v2';
 function mount(initial,now=200000,storageFails=false,storedKey=KEY){
  let saved=initial,tick;
+ const backups={};
  const elements=new Map(),listeners={};
  const document={title:'',addEventListener(name,handler){listeners[name]=handler;},querySelector(){return null;},getElementById(id){if(!elements.has(id))elements.set(id,{innerHTML:'',textContent:'',classList:{add(){},remove(){},toggle(){}},close(){},showModal(){},querySelector(){return {};}});return elements.get(id);}};
- const context={document,window:{QUESTION_BANK:bank,QuizCore:C,scrollTo(){}},localStorage:{getItem(key){assert.equal(key,KEY);if(storageFails)throw Error('blocked');return saved&&key===storedKey?JSON.stringify(saved):null;},setItem(key,value){assert.equal(key,KEY);saved=JSON.parse(value);}},Date:class extends Date{static now(){return now;}},setInterval(fn){tick=fn;},setTimeout(){},clearTimeout(){},console};
+ const context={document,window:{QUESTION_BANK:bank,QUESTION_BANK_MIGRATION:migration,QuizCore:C,scrollTo(){}},localStorage:{getItem(key){if(storageFails)throw Error('blocked');if(key!==KEY)return backups[key]||null;return saved&&key===storedKey?JSON.stringify(saved):null;},setItem(key,value){if(storageFails)throw Error('blocked');if(key!==KEY){backups[key]=value;return;}saved=JSON.parse(value);}},Date:class extends Date{static now(){return now;}},setInterval(fn){tick=fn;},setTimeout(){},clearTimeout(){},console};
  vm.runInNewContext(code,context);
- return{state:()=>saved,html:()=>elements.get('app').innerHTML,tick:()=>tick(),advance:n=>now=n,click:(action,extra={})=>listeners.click({target:{closest:()=>({dataset:{action,...extra}})},preventDefault(){}})};
+ return{state:()=>saved,backups,html:()=>elements.get('app').innerHTML,tick:()=>tick(),advance:n=>now=n,click:(action,extra={})=>listeners.click({target:{closest:()=>({dataset:{action,...extra}})},preventDefault(){}})};
 }
 const initial={version:2,wrong:{},seen:{},history:[],session:{id:'timed-test',mode:'exam',ids:[1,2],answers:{1:['C']},checked:{},flags:{},index:0,startedAt:100000,deadline:150000,title:'模拟考试'}};
 const expired=mount(initial);
@@ -79,3 +81,31 @@ assert.equal(old.state().version,2);
 assert.deepEqual(old.state().history,[]);
 assert.deepEqual(old.state().seen,{});
 console.log('Passed: all 298 shuffled exactly once, order and answer persistence, resume, last-question boundary, seven independent full-chapter entries, and old-storage isolation.');
+
+// The reported regression: old B is the correct text, old D is a wrong text.
+const legacy={version:2,wrong:{97:{count:3,lastAt:100}},seen:{97:{attempts:4,right:0},1:{attempts:10,right:8}},history:[
+ {id:'report',mode:'practice',ids:[97],answers:{97:['D']},finishedAt:900,score:100,right:1,wrong:0,unanswered:0,details:[{id:97,selected:['D'],correct:true}]}
+],session:{id:'continue',mode:'practice',ids:[97,1],answers:{97:['B']},checked:{97:true},flags:{97:true},index:1,startedAt:1000,deadline:null}};
+const repaired=mount(legacy,1200);
+assert.deepEqual(repaired.state().session.answers[97],['D']);
+assert.deepEqual(repaired.state().session.ids,[97,1]);
+assert.equal(repaired.state().session.index,1);
+assert.equal(repaired.state().session.flags[97],true);
+assert.deepEqual(repaired.state().history[0].answers[97],['B']);
+assert.equal(repaired.state().history[0].score,0);
+assert.equal(repaired.state().history[0].details[0].correct,false);
+assert.deepEqual(repaired.state().seen[1],legacy.seen[1]);
+assert.equal(repaired.state().seen[97].attempts,2);
+assert.equal(repaired.state().seen[97].right,1);
+assert.equal(repaired.state().wrong[97],undefined);
+assert.deepEqual(JSON.parse(repaired.backups[KEY+'-before-excel-audit']),legacy);
+const once=JSON.parse(JSON.stringify(repaired.state()));
+assert.deepEqual(C.migrateQuestionBank(once,migration,bank),once);
+assert.deepEqual(mount(once).state(),once);
+const multiId=migration.affectedIds.find(id=>bank.find(q=>q.id===id).type==='多选'&&migration.letters[id]);
+const multiMap=migration.letters[multiId], correctOld=Object.keys(multiMap).filter(a=>bank.find(q=>q.id===multiId).answer.includes(multiMap[a]));
+const multi={...legacy,session:{...legacy.session,ids:[multiId],index:0,answers:{[multiId]:correctOld},checked:{[multiId]:true}},history:[],seen:{},wrong:{}};
+const multiFixed=C.migrateQuestionBank(multi,migration,bank);
+assert.ok(C.correct(multiFixed.session.answers[multiId],bank.find(q=>q.id===multiId).answer));
+assert.equal(multiFixed.seen[multiId].right,1);
+console.log('Passed: legacy choices remapped by content, corrected scores and wrong-book, preserved progress/flags/unaffected statistics, backup, multi-choice migration and idempotence.');

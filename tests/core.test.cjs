@@ -2,6 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const path = require('node:path');
+const reference = require('./answer-reference.json');
 const C = require('../docs/quiz-core.js');
 const context = {window:{}};
 vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../docs/data.js'),'utf8'),context);
@@ -18,9 +19,19 @@ for(const ch of chapters){
   assert.deepEqual(qs.map(q=>q.order),qs.map((_,i)=>i+1));
 }
 const find=(chapter,order)=>Q.find(q=>q.chapter.startsWith(chapter+' ')&&q.order===order);
-for(const [chapter,order,answer] of [['第一章',35,'ABCD'],['第五章',18,'C'],['第六章',6,'C'],['第六章',42,'ACD'],['第七章',25,'A'],['第七章',41,'AB'],['第七章',15,'A']]){
-  assert.equal(find(chapter,order).answer,answer,`${chapter}第${order}题 must retain the confirmed answer`);
+for(const [chapter,order,answer] of [['第一章',35,'ABCD'],['第五章',18,'C'],['第六章',6,'C'],['第六章',42,'ABCD'],['第七章',25,'A'],['第七章',41,'AB'],['第七章',15,'A']]){
+  assert.equal(find(chapter,order).answer,answer,`${chapter}第${order}题 must retain the latest source answer`);
 }
+assert.equal(reference.records.length,257);
+const normalizeText=text=>text.normalize('NFKC').replace(/[^\p{L}\p{N}]/gu,'').toLowerCase();
+for(const row of reference.records){
+  const q=Q.find(q=>q.id===row.id);
+  assert.deepEqual([...q.answer].map(a=>normalizeText(q.options[a])).sort(),row.answers.map(normalizeText).sort(),`Excel row ${row.row}: answer CONTENT must match, irrespective of option order`);
+}
+assert.equal(find('第二章',27).answer,'D');
+assert.equal(find('第二章',27).options.D,'以武装的革命反对武装的反革命');
+assert.ok(find('第二章',27).options.B.includes('目标是争取民族独立'));
+assert.ok(find('绪论',10).note.includes('差异'));
 assert.ok(find('第七章',15).options.A.endsWith('坚持党的先进性'));
 for(const q of Q){
   assert.ok(q.question.trim());assert.ok(q.explanation.trim());
@@ -49,3 +60,4 @@ assert.equal(selected.length,5);assert.ok(selected.every(q=>q.chapter===chapter&
 assert.equal(C.selectQuestions(Q,{chapter:'all',type:'all',count:'20',order:'random'}).length,20);
 assert.equal(C.selectQuestions(Q,{chapter:'all',type:'all',count:'all',order:'sequential'}).length,298);
 console.log('Passed: 298 questions, seven chapter counts and original numbers, seven user confirmations, exact multi-choice grading, scores, filters, random selection.');
+console.log('Passed: all 257 reference answers compared by text, original photo order for revolution question 27, and source conflict disclosure.');
